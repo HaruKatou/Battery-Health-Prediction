@@ -40,6 +40,20 @@ def create_sequence(df, seq_length, target):
 
     return np.array(sequences), np.array(labels)
 
+def create_sequences(data, window_size):
+    X, y = [], []
+    for i in range(len(data) - window_size):
+        X.append(data[i:i+window_size])
+        y.append(data[i+window_size])
+    return np.array(X), np.array(y)
+
+def create_sequences_autoencoder(data, n_steps_in, n_steps_out):
+    X, y = [], []
+    for i in range(len(data) - n_steps_in - n_steps_out):
+        X.append(data[i:i+n_steps_in])
+        y.append(data[i + n_steps_in: i + n_steps_in + n_steps_out, -1])
+    return np.array(X), np.array(y)
+
 def extract_features(df):
     """Extract features from a single cycle's time-series data"""
     features = {
@@ -91,3 +105,33 @@ def data_scaling(X, scaler=None):
     X_scaled = X_scaled.reshape(X.shape)
 
     return X_scaled, scaler
+
+def prepare_sequences_from_cycles(metadata, data_path, columns, seq_len=175):
+    sequences = []
+
+    scaler = MinMaxScaler(feature_range=(0, 1))
+
+    for _, row in tqdm(metadata.iterrows(), total=len(metadata)):
+        file_path = f"{data_path}/{row['filename']}"
+        df = pd.read_csv(file_path)[columns].copy()
+
+        df[columns] = scaler.fit_transform(df[columns])
+
+        if len(df) < seq_len:
+            pad_len = seq_len - len(df)
+            df = pd.concat([df, pd.DataFrame(np.zeros((pad_len, len(columns))), columns=columns)])
+        else:
+            df = df.iloc[:seq_len]
+
+        sequences.append(df.values)
+
+    return np.array(sequences)
+
+def create_encoder_decoder_sequences(data, input_steps, output_steps):
+    X, y = [], []
+    for i in range(len(data) - input_steps - output_steps):
+        input_seq = data[i : i + input_steps]
+        output_seq = data[i + input_steps : i + input_steps + output_steps]
+        X.append(input_seq)
+        y.append(output_seq)
+    return np.array(X), np.array(y)
