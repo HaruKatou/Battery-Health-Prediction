@@ -42,9 +42,12 @@ def create_sequence(df, seq_length, target):
 
 def create_sequences(data, window_size):
     X, y = [], []
+    # data = data.reset_index(drop=True)
     for i in range(len(data) - window_size):
+        # X.append(data.iloc[i:i+window_size].values)
         X.append(data[i:i+window_size])
         y.append(data[i+window_size])
+        # y.append(data.iloc[i+window_size].values)
     return np.array(X), np.array(y)
 
 def create_sequences_autoencoder(data, n_steps_in, n_steps_out):
@@ -106,10 +109,13 @@ def data_scaling(X, scaler=None):
 
     return X_scaled, scaler
 
-def prepare_sequences_from_cycles(metadata, data_path, columns, seq_len=175):
+def prepare_sequences_from_cycles(metadata, data_path, columns, seq_len=175, max_cycles=None):
     sequences = []
 
     scaler = MinMaxScaler(feature_range=(0, 1))
+
+    if max_cycles is not None:
+        metadata = metadata.iloc[:max_cycles]
 
     for _, row in tqdm(metadata.iterrows(), total=len(metadata)):
         file_path = f"{data_path}/{row['filename']}"
